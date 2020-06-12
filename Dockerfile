@@ -58,6 +58,7 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 COPY manage.py .
 
 COPY apiservices apiservices
+COPY settings.ini .
 
 # Generate static files
 # Note that we pass a dummy secret key
