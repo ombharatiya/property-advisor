@@ -1,0 +1,42 @@
+version: "3"
+
+services:
+  web:
+    container_name: apiservices
+    image: apiservices
+    build: .
+    command: bash -c "rm -f db.sqlite3 && python3 manage.py makemigrations && python3 manage.py migrate && python3 manage.py initadmin && gunicorn --timeout=30 --workers=2 --bind :8001 apiservices.wsgi:application"
+    expose:
+      - 8001
+    ports:
+      - "8001:8001"
+      # - "587:587/tcp"
+    volumes:
+      - .:/code
+      - static-volume:/code/static
+
+  # Uncomment to create mongo db server in docker-compose
+  # mongodb:
+  #   image: mongo:3.2.6
+  #   ports:
+  #     - 27017:27017
+
+  # Uncomment to create redis server in docker-compose
+  # redis:
+  #   restart: always
+  #   image: redis:latest
+  #   expose:
+  #     - "6379"
+
+  nginx:
+    build: ./config/nginx
+    ports:
+      - "81:81"
+    volumes:
+      - static-volume:/code/static
+      - ./config/nginx:/etc/nginx/conf.d
+    depends_on:
+      - web
+
+volumes:
+  static-volume:

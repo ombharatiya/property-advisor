@@ -1,0 +1,11 @@
+*.pyc
+db.sqlite3
+.vscode/
+master_conf.cfg
+.idea/
+*.log
+.scannerwork/
+venv/
+.venv/
+.coverage
+coverage.xml
