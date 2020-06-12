@@ -5,7 +5,7 @@ services:
     container_name: apiservices
     image: apiservices
     build: .
-    command: bash -c "rm -f db.sqlite3 && python3 manage.py makemigrations && python3 manage.py migrate && python3 manage.py initadmin && gunicorn --timeout=30 --workers=2 --bind :8001 apiservices.wsgi:application"
+    command: bash -c "rm -f db.sqlite3 && python3 manage.py collectstatic --no-input && python3 manage.py makemigrations && python3 manage.py migrate && python3 manage.py initadmin && gunicorn --timeout=30 --workers=2 --bind :8001 apiservices.wsgi:application"
     expose:
       - 8001
     ports:

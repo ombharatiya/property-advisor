@@ -11,16 +11,18 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+from configparser import RawConfigParser
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'qs@ymzi*-xn290n+a7yg2!7tw+-3hvx1srl85$u3z)7$x!mwx&'
+SECRET_KEY = 'qs@ymzi*-xn290n+a7yg2!7tkjsdhjhdsbl85$u3z)7$x!mwx&'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -36,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'whitenoise.runserver_nostatic',
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
@@ -45,6 +48,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -58,7 +62,12 @@ ROOT_URLCONF = 'apiservices.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            os.path.join(BASE_DIR, 'apiservices/templates/oidc_provider'),
+            os.path.join(BASE_DIR, 'apiservices/templates/registration'),
+            os.path.join(BASE_DIR, 'apiservices/templates/'),
+            os.path.join(BASE_DIR, 'templates'),
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -121,8 +130,22 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
+# STATIC_URL = '/static/'
 STATIC_URL = '/static/'
 
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+
+WHITENOISE_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+STATICFILES_DIRS = [
+    # os.path.join(BASE_DIR, 'apiservices/templates/oidc_provider'),
+    # os.path.join(BASE_DIR, 'apiservices/templates/registration'),
+    os.path.join(BASE_DIR, 'apiservices/templates/'),
+    # os.path.join(BASE_DIR, 'templates'),
+    # os.path.join(PROJECT_ROOT, 'static'),
+]
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # CORS Setting
 
@@ -130,8 +153,8 @@ CORS_ORIGIN_ALLOW_ALL = True
 
 # Admin credentials
 
-ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin@example.com')
-ADMIN_PWD = os.environ.get('ADMIN_PWD', '12345admin')
+# ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin@example.com')
+# ADMIN_PWD = os.environ.get('ADMIN_PWD', '12345admin')
 
 # Caching
 
@@ -148,3 +171,9 @@ CACHES = {
         # 'TIMEOUT': 3600, # 1 hour , default 5 min
     }
 }
+
+
+config = RawConfigParser()
+config.read(os.path.join(BASE_DIR, 'settings.ini'))
+ADMIN_USERNAME = config.get('section', 'ADMIN_USERNAME')
+ADMIN_PWD = config.get('section', 'ADMIN_PWD')
