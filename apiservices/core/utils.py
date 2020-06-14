@@ -44,12 +44,12 @@ def processInputDataAndGiveMatches(input):
             "minBudget": min_budget,
             "maxBudget": max_budget
         }
-        print("req_obj")
-        print(req_obj)
+        # print("req_obj")
+        # print(req_obj)
         list_of_properties = getTopMatches(req_obj)
-        print("list_of_properties")
-        print(list_of_properties)
-        return list_of_properties
+        # print("list_of_properties")
+        # print(list_of_properties)
+        return list_of_properties, req_obj
     except Exception as e:
         print(f"Something went wrong.. :{str(e)}")
         return []

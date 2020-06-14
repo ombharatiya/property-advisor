@@ -1,7 +1,7 @@
 from apiservices.core.RealState import MOCK_DATA
 from apiservices.core.RealState.utils import distance
 
-input1 = {
+input_sample = {
     "minBedrooms": 1,
     "maxBedrooms": 2,
     "minBathrooms": 2,
@@ -201,13 +201,13 @@ def getBathroomMatch(req_data, present_data):
 
 def getMatch(req_data, app_data):
     distance_match = getDistanceMatch(req_data, app_data)
-    print(f"distance_match: {distance_match}")
+    # print(f"distance_match: {distance_match}")
     budget_match = getBudgetMatch(req_data, app_data)
-    print(f"budget_match: {budget_match}")
+    # print(f"budget_match: {budget_match}")
     bedroom_match = getBedroomMatch(req_data, app_data)
-    print(f"bedroom_match: {bedroom_match}")
+    # print(f"bedroom_match: {bedroom_match}")
     bathroom_match = getBathroomMatch(req_data, app_data)
-    print(f"bathroom_match: {bathroom_match}")
+    # print(f"bathroom_match: {bathroom_match}")
     return round(
         distance_match * DISTANCE_WEIGHT
         + budget_match * BUDGET_WEIGHT
@@ -226,7 +226,6 @@ def getTopMatches(req_data):
         if count < 0:
             break
         count = count - 1
-        # obj = {'id': data['id']}
         match = getMatch(req_data, data)
         if match >= 40:
             obj = data.copy()
