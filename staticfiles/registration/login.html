@@ -1,0 +1,28 @@
+<!--{% block title %}Aruba Auth Login{% endblock %}-->
+{% load static %}
+<link
+  rel="stylesheet"
+  type="text/css"
+  href="{% static 'registration/login.css' %}"
+/>
+{% block content %}
+<form method="post">
+  {% csrf_token %}
+  <div class="title-container">
+    <h1>Aruba Auth Login</h1>
+  </div>
+  <div class="imgcontainer">
+    <img
+      src="{% static 'registration/home.svg' %}"
+      alt="Avatar"
+      class="avatar"
+    />
+  </div>
+  <div class="global-container">
+    <div class="login-container">
+      {{ form.as_p }}
+      <button type="submit">Login</button>
+    </div>
+  </div>
+</form>
+{% endblock %}

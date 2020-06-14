@@ -1,0 +1,56 @@
+<html>
+  <head>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+    />
+    <style>
+      .i-am-centered {
+        margin: auto;
+        max-width: 300px;
+        padding-top: 5%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="i-am-centered">
+      <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+          <label>Min Budget </label>
+          {{ form.min_budget }}
+        </div>
+        <div class="form-group">
+          <label>Max Budget </label>
+          {{ form.max_budget }}
+        </div>
+        <div class="form-group">
+          <label>Latitude &nbsp;&nbsp;&nbsp;&nbsp;</label>
+          {{ form.lat }}
+        </div>
+        <div class="form-group">
+          <label>Longitude </label>
+          {{ form.lon }}
+        </div>
+        <div class="form-group">
+          <label>Min Bedrooms</label>
+          {{ form.min_bedrooms }}
+        </div>
+        <div class="form-group">
+          <label>Max Bedrooms</label>
+          {{ form.max_bedrooms }}
+        </div>
+        <div class="form-group">
+          <label>Min Bathrooms</label>
+          {{ form.min_bathrooms }}
+        </div>
+        <div class="form-group">
+          <label>Max Bathrooms</label>
+          {{ form.max_bathrooms }}
+        </div>
+        <button type="submit" class="btn btn-primary">Submit</button>
+      </form>
+    </div>
+  </body>
+</html>

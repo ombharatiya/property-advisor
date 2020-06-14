@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from apiservices.core.constants import BLOG
 from django.shortcuts import render
 from .forms import InputForm
+from .utils import processInputDataAndGiveMatches
 
 
 @api_view(["GET"])
@@ -36,15 +37,16 @@ def home_view(request):
         if MyLoginForm.is_valid():
             # username = MyLoginForm.cleaned_data['first_name']
             print(MyLoginForm.cleaned_data)
-        return render(request, 'loggedin.html', {
-            "first_name": str(MyLoginForm.cleaned_data),
-            "day_list": ['sunday','monday','tuesday']
-        })
-    else:
-        # MyLoginForm = InputForm()
-        context = {}
-        context['form'] = InputForm()
-        return render(request, "home.html", context)
+            prop_data = processInputDataAndGiveMatches(MyLoginForm.cleaned_data)
+            
+            return render(request, 'loggedin.html', {"properties": prop_data})
+            # return render(request, 'loggedin.html', {
+            #     "first_name": str(MyLoginForm.cleaned_data),
+            #     "day_list": ['sunday','monday','tuesday']
+            # })
+    context = {}
+    context['form'] = InputForm()
+    return render(request, "home.html", context)
 
 
 # def home_view(request):
