@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    'crispy_forms',
     'apiservices.core',
 ]
 
@@ -177,3 +178,5 @@ config = RawConfigParser()
 config.read(os.path.join(BASE_DIR, 'settings.ini'))
 ADMIN_USERNAME = config.get('section', 'ADMIN_USERNAME')
 ADMIN_PWD = config.get('section', 'ADMIN_PWD')
+
+CRISPY_TEMPLATE_PACK = 'bootstrap4'

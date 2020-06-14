@@ -1,0 +1,50 @@
+<!-- <html>
+  <body>
+    You are : <strong>{{first_name}}</strong>
+    {% for day in day_list %}
+    <p>{{ day }}</p>
+    {% endfor %}
+  </body>
+</html> -->
+
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      table {
+        border-collapse: collapse;
+        border-spacing: 0;
+        width: 100%;
+        border: 1px solid #ddd;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 16px;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f2f2f2;
+      }
+    </style>
+  </head>
+  <body>
+    {% csrf_token %}
+    <h2>Advised property Table</h2>
+    <p>
+      List of days:
+    </p>
+
+    <table>
+      {% for day in day_list %}
+      <tr>
+        <th>First Name</th>
+        <th>Last Name</th>
+        <th>Points</th>
+        <th>{{ day }}</th>
+      </tr>
+      {% endfor %}
+    </table>
+  </body>
+</html>
