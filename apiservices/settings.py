@@ -25,7 +25,8 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 SECRET_KEY = 'qs@ymzi*-xn290n+a7yg2!7tkjsdhjhdsbl85$u3z)7$x!mwx&'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
+# DEBUG = True
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "*"]
 
@@ -42,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
+    # 'crispy_forms',
     'apiservices.core',
 ]
 
@@ -177,3 +179,5 @@ config = RawConfigParser()
 config.read(os.path.join(BASE_DIR, 'settings.ini'))
 ADMIN_USERNAME = config.get('section', 'ADMIN_USERNAME')
 ADMIN_PWD = config.get('section', 'ADMIN_PWD')
+
+# CRISPY_TEMPLATE_PACK = 'bootstrap4'

@@ -1,0 +1,84 @@
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      table {
+        border-collapse: collapse;
+        border-spacing: 0;
+        width: 100%;
+        border: 1px solid #ddd;
+      }
+
+      th,
+      td {
+        text-align: center;
+        padding: 16px;
+      }
+
+      tr:nth-child(even) {
+        background-color: #f2f2f2;
+      }
+    </style>
+  </head>
+  <body>
+    {% csrf_token %}
+    <h2>Advised property List</h2>
+    <p>
+      List of properties matching with given query:
+    </p>
+
+    <table>
+      <tr>
+        <td colspan="100%" style="font-weight: bold;">Requested data</td>
+      </tr>
+      <tr>
+        <th>minBudget</th>
+        <th>maxBudget</th>
+        <th>lat</th>
+        <th>lon</th>
+        <th>minBedrooms</th>
+        <th>maxBedrooms</th>
+        <th>minBathrooms</th>
+        <th>maxBathrooms</th>
+      </tr>
+      <tr>
+        <td>{{ req_data.minBudget }}</td>
+        <td>{{ req_data.maxBudget }}</td>
+        <td>{{ req_data.lat }}</td>
+        <td>{{ req_data.lon }}</td>
+        <td>{{ req_data.minBedrooms }}</td>
+        <td>{{ req_data.maxBedrooms }}</td>
+        <td>{{ req_data.minBathrooms }}</td>
+        <td>{{ req_data.maxBathrooms }}</td>
+      </tr>
+      <tr>
+        <td colspan="100%">&nbsp;</td>
+      </tr>
+      <tr>
+        <td colspan="100%" style="font-weight: bold;">Matching Data</td>
+      </tr>
+      <tr>
+        <th>id</th>
+        <th>name</th>
+        <th>price</th>
+        <th>lat</th>
+        <th>lon</th>
+        <th>bedrooms</th>
+        <th>bathrooms</th>
+        <th>match</th>
+      </tr>
+      {% for property in properties %}
+      <tr>
+        <td>{{ property.id }}</td>
+        <td>{{ property.name }}</td>
+        <td>$ {{ property.price }}</td>
+        <td>{{ property.lat }}</td>
+        <td>{{ property.lon }}</td>
+        <td>{{ property.bedrooms }}</td>
+        <td>{{ property.bathrooms }}</td>
+        <td style="font-weight: bold;">{{ property.match }} %</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </body>
+</html>
