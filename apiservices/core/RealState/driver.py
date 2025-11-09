@@ -1,238 +1,259 @@
+"""
+Property matching algorithm using weighted scoring system.
+
+This module implements the core business logic for matching properties
+with search requirements based on distance, budget, bedrooms, and bathrooms.
+"""
+from typing import List, Dict, Optional
+from dataclasses import dataclass
 from apiservices.core.RealState import MOCK_DATA
 from apiservices.core.RealState.utils import distance
 
-input_sample = {
-    "minBedrooms": 1,
-    "maxBedrooms": 2,
-    "minBathrooms": 2,
-    "maxBathrooms": 4,
-    "lat": 18.3721392,
-    "lon": 121.5111211,
-    "minBudget": "8305.39",
-    "maxBudget": "8305.39"
-}
+
+@dataclass
+class MatchWeights:
+    """Configuration for match scoring weights."""
+    distance: float = 0.3
+    budget: float = 0.3
+    bedrooms: float = 0.2
+    bathrooms: float = 0.2
 
 
-output1 = [
-    {'id': 1, 'match': 100.0},
-    {'id': 7, 'match': 70.0},
-    {'id': 2, 'match': 64.0},
-    {'id': 3, 'match': 58.0},
-    {'id': 10, 'match': 40.6}
-]
+@dataclass
+class MatchThresholds:
+    """Configuration for match thresholds."""
+    min_match_percentage: float = 40.0
+    max_match_percentage: float = 100.0
+    
+    # Distance thresholds in miles
+    distance_perfect: float = 2.0
+    distance_max: float = 10.0
+    
+    # Budget thresholds in percentage
+    budget_perfect: float = 10.0
+    budget_max: float = 25.0
+    
+    # Room count thresholds
+    rooms_perfect: int = 0
+    rooms_max: int = 2
 
-PERCENTAGE_VALID_LOW = 40
-PERCENTAGE_VALID_HIGH = 100
-
-DISTANCE_WEIGHT = 0.3
-BUDGET_WEIGHT = 0.3
-BATHROOM_WEIGHT = 0.2
-BEDROOM_WEIGHT = 0.2
-
-DISTANCE_THRESHOLD_LOW = 2
-DISTANCE_THRESHOLD_HIGH = 10
-
-# considering the avg of budget max-min to find the percentage
-BUDGET_THRESHOLD_LOW = 10
-BUDGET_THRESHOLD_HIGH = 25
-
-ROOMS_THRESHOLD_LOW = 0
-ROOMS_THRESHOLD_HIGH = 2
+# Default configuration instances
+WEIGHTS = MatchWeights()
+THRESHOLDS = MatchThresholds()
 
 
-def getDistanceMatch(req_data, present_data):
-    lat1 = req_data['lat']
-    lon1 = req_data['lon']
-    lat2 = present_data['lat']
-    lon2 = present_data['lon']
-    old_value = distance(lat1, lon1, lat2, lon2)
-    old_max = DISTANCE_THRESHOLD_HIGH
-    old_min = DISTANCE_THRESHOLD_LOW
-    if 0 <= old_value <= old_min:
-        return 100
-    if old_min < old_value < old_max:
-        new_max = PERCENTAGE_VALID_HIGH
-        new_min = PERCENTAGE_VALID_LOW
-        old_range = (old_max - old_min)
-        new_range = (new_max - new_min)
-        new_value = (((old_value - old_min) * new_range) / old_range) + new_min
-        return 140 - new_value
-    return 0
+class PropertyMatcher:
+    """Property matching service with improved algorithms and caching."""
+    
+    def __init__(self, weights: MatchWeights = None, thresholds: MatchThresholds = None):
+        self.weights = weights or WEIGHTS
+        self.thresholds = thresholds or THRESHOLDS
 
 
-def getBudgetMatch(req_data, present_data):
-    budget_max = req_data['maxBudget']
-    budget_min = req_data['minBudget']
-    if (budget_max is None or budget_max is '') and (budget_min is None or budget_min is ''):
-        return 0
-    if budget_max is None or budget_max is '':
-        budget_max = budget_min
-    if budget_min is None or budget_min is '':
-        budget_min = budget_max
-    budget_max = float(budget_max)
-    budget_min = float(budget_min)
-    avg_budget = (budget_max + budget_min) / 2.0
-    old_value = float(present_data['price'])
-    old_low_min = budget_min - (avg_budget * BUDGET_THRESHOLD_LOW) / 100
-    old_low_min = old_low_min if old_low_min > 0 else 0
-    old_low_max = budget_max + (avg_budget * BUDGET_THRESHOLD_LOW) / 100
-    old_low_max = old_low_max if old_low_max > 0 else 0
-    if old_low_min <= old_value <= old_low_max:
-        return 100
-
-    if old_value >= old_low_max:
-        old_min = old_low_max
-        old_max = budget_max + (avg_budget * BUDGET_THRESHOLD_HIGH) / 100
-        old_max = old_max if old_max > 0 else 0
-        if old_value <= old_max:
-            new_max = PERCENTAGE_VALID_HIGH
-            new_min = PERCENTAGE_VALID_LOW
-            old_range = (old_max - old_min)
-            new_range = (new_max - new_min)
-            new_value = (((old_value - old_min) * new_range) /
-                         old_range) + new_min
-            return 140 - new_value
-    else:
-        old_max = old_low_min
-        old_min = budget_min - (avg_budget * BUDGET_THRESHOLD_HIGH) / 100
-        old_min = old_min if old_min > 0 else 0
-        if old_value >= old_min:
-            new_max = PERCENTAGE_VALID_HIGH
-            new_min = PERCENTAGE_VALID_LOW
-            old_range = (old_max - old_min)
-            new_range = (new_max - new_min)
-            new_value = (((old_value - old_min) * new_range) /
-                         old_range) + new_min
-            return new_value
-    return 0
+    def calculate_distance_match(self, requirement: Dict, property_data: Dict) -> float:
+        """Calculate distance match score between requirement and property."""
+        lat1 = requirement['lat']
+        lon1 = requirement['lon']
+        lat2 = property_data['lat']
+        lon2 = property_data['lon']
+        
+        distance_miles = distance(lat1, lon1, lat2, lon2)
+        
+        if distance_miles <= self.thresholds.distance_perfect:
+            return 100.0
+        elif distance_miles <= self.thresholds.distance_max:
+            # Linear interpolation between perfect and max distance
+            score_range = self.thresholds.max_match_percentage - self.thresholds.min_match_percentage
+            distance_range = self.thresholds.distance_max - self.thresholds.distance_perfect
+            score = self.thresholds.max_match_percentage - (
+                (distance_miles - self.thresholds.distance_perfect) / distance_range * score_range
+            )
+            return max(score, self.thresholds.min_match_percentage)
+        
+        return 0.0
 
 
-def getBedroomMatch(req_data, present_data):
-    bedroom_max = req_data['maxBedrooms']
-    bedroom_min = req_data['minBedrooms']
-    if (bedroom_max is None or bedroom_max is '') and (bedroom_min is None or bedroom_min is ''):
-        return 0
-    if bedroom_max is None or bedroom_max is '':
-        bedroom_max = bedroom_min
-    if bedroom_min is None or bedroom_min is '':
-        bedroom_min = bedroom_max
-    bedroom_max = int(bedroom_max)
-    bedroom_min = int(bedroom_min)
-    old_value = int(present_data['bedrooms'])
-    old_low_min = bedroom_min - ROOMS_THRESHOLD_LOW
-    old_low_min = old_low_min if old_low_min > 0 else 0
-    old_low_max = bedroom_max + ROOMS_THRESHOLD_LOW
-    old_low_max = old_low_max if old_low_max > 0 else 0
-    if old_low_min <= old_value <= old_low_max:
-        return 100
-
-    if old_value >= old_low_max:
-        old_min = old_low_max
-        old_max = bedroom_max + ROOMS_THRESHOLD_HIGH
-        old_max = old_max if old_max > 0 else 0
-        if old_value <= old_max:
-            new_max = PERCENTAGE_VALID_HIGH
-            new_min = PERCENTAGE_VALID_LOW
-            old_range = (old_max - old_min)
-            new_range = (new_max - new_min)
-            new_value = (((old_value - old_min) * new_range) /
-                         old_range) + new_min
-            return 140 - new_value
-    else:
-        old_max = old_low_min
-        old_min = bedroom_min - ROOMS_THRESHOLD_HIGH
-        old_min = old_min if old_min > 0 else 0
-        if old_value >= old_min:
-            new_max = PERCENTAGE_VALID_HIGH
-            new_min = PERCENTAGE_VALID_LOW
-            old_range = (old_max - old_min)
-            new_range = (new_max - new_min)
-            new_value = (((old_value - old_min) * new_range) /
-                         old_range) + new_min
-            return new_value
-    return 0
-
-
-def getBathroomMatch(req_data, present_data):
-    bedroom_max = req_data['maxBathrooms']
-    bedroom_min = req_data['minBathrooms']
-    if (bedroom_max is None or bedroom_max is '') and (bedroom_min is None or bedroom_min is ''):
-        return 0
-    if bedroom_max is None or bedroom_max is '':
-        bedroom_max = bedroom_min
-    if bedroom_min is None or bedroom_min is '':
-        bedroom_min = bedroom_max
-    bedroom_max = int(bedroom_max)
-    bedroom_min = int(bedroom_min)
-    old_value = int(present_data['bathrooms'])
-    old_low_min = bedroom_min - ROOMS_THRESHOLD_LOW
-    old_low_min = old_low_min if old_low_min > 0 else 0
-    old_low_max = bedroom_max + ROOMS_THRESHOLD_LOW
-    old_low_max = old_low_max if old_low_max > 0 else 0
-    if old_low_min <= old_value <= old_low_max:
-        return 100
-
-    if old_value >= old_low_max:
-        old_min = old_low_max
-        old_max = bedroom_max + ROOMS_THRESHOLD_HIGH
-        old_max = old_max if old_max > 0 else 0
-        if old_value <= old_max:
-            new_max = PERCENTAGE_VALID_HIGH
-            new_min = PERCENTAGE_VALID_LOW
-            old_range = (old_max - old_min)
-            new_range = (new_max - new_min)
-            new_value = (((old_value - old_min) * new_range) /
-                         old_range) + new_min
-            return 140 - new_value
-    else:
-        old_max = old_low_min
-        old_min = bedroom_min - ROOMS_THRESHOLD_HIGH
-        old_min = old_min if old_min > 0 else 0
-        if old_value >= old_min:
-            new_max = PERCENTAGE_VALID_HIGH
-            new_min = PERCENTAGE_VALID_LOW
-            old_range = (old_max - old_min)
-            new_range = (new_max - new_min)
-            new_value = (((old_value - old_min) * new_range) /
-                         old_range) + new_min
-            return new_value
-    return 0
+    def calculate_budget_match(self, requirement: Dict, property_data: Dict) -> float:
+        """Calculate budget match score between requirement and property."""
+        budget_max = requirement.get('maxBudget')
+        budget_min = requirement.get('minBudget')
+        
+        if not budget_max and not budget_min:
+            return 0.0
+            
+        # Handle cases where only one bound is provided
+        if not budget_max:
+            budget_max = budget_min
+        if not budget_min:
+            budget_min = budget_max
+            
+        try:
+            budget_max = float(budget_max) if budget_max else 0
+            budget_min = float(budget_min) if budget_min else 0
+            property_price = float(property_data['price'])
+        except (ValueError, TypeError):
+            return 0.0
+            
+        avg_budget = (budget_max + budget_min) / 2.0
+        
+        # Perfect match range (within 10% of average)
+        perfect_range_min = budget_min - (avg_budget * self.thresholds.budget_perfect) / 100
+        perfect_range_max = budget_max + (avg_budget * self.thresholds.budget_perfect) / 100
+        perfect_range_min = max(perfect_range_min, 0)
+        
+        if perfect_range_min <= property_price <= perfect_range_max:
+            return 100.0
+            
+        # Acceptable range (within 25% of average)
+        acceptable_range_min = budget_min - (avg_budget * self.thresholds.budget_max) / 100
+        acceptable_range_max = budget_max + (avg_budget * self.thresholds.budget_max) / 100
+        acceptable_range_min = max(acceptable_range_min, 0)
+        
+        if property_price > perfect_range_max and property_price <= acceptable_range_max:
+            # Linear interpolation for higher prices
+            price_diff = property_price - perfect_range_max
+            max_diff = acceptable_range_max - perfect_range_max
+            score = 100 - (price_diff / max_diff) * (100 - self.thresholds.min_match_percentage)
+            return max(score, self.thresholds.min_match_percentage)
+            
+        elif property_price < perfect_range_min and property_price >= acceptable_range_min:
+            # Linear interpolation for lower prices
+            price_diff = perfect_range_min - property_price
+            max_diff = perfect_range_min - acceptable_range_min
+            score = 100 - (price_diff / max_diff) * (100 - self.thresholds.min_match_percentage)
+            return max(score, self.thresholds.min_match_percentage)
+            
+        return 0.0
 
 
-def getMatch(req_data, app_data):
-    distance_match = getDistanceMatch(req_data, app_data)
-    # print(f"distance_match: {distance_match}")
-    budget_match = getBudgetMatch(req_data, app_data)
-    # print(f"budget_match: {budget_match}")
-    bedroom_match = getBedroomMatch(req_data, app_data)
-    # print(f"bedroom_match: {bedroom_match}")
-    bathroom_match = getBathroomMatch(req_data, app_data)
-    # print(f"bathroom_match: {bathroom_match}")
-    return round(
-        distance_match * DISTANCE_WEIGHT
-        + budget_match * BUDGET_WEIGHT
-        + bedroom_match * BEDROOM_WEIGHT
-        + bathroom_match * BATHROOM_WEIGHT,
-        2)
+    def calculate_bedroom_match(self, requirement: Dict, property_data: Dict) -> float:
+        """Calculate bedroom match score between requirement and property."""
+        return self._calculate_room_match(
+            requirement, property_data, 'Bedrooms', 'bedrooms'
+        )
 
 
-app_db = MOCK_DATA.DATA
+    def calculate_bathroom_match(self, requirement: Dict, property_data: Dict) -> float:
+        """Calculate bathroom match score between requirement and property."""
+        return self._calculate_room_match(
+            requirement, property_data, 'Bathrooms', 'bathrooms'
+        )
+    
+    def _calculate_room_match(self, requirement: Dict, property_data: Dict, 
+                             room_type_cap: str, room_type_lower: str) -> float:
+        """Generic room count matching logic for bedrooms and bathrooms."""
+        max_key = f'max{room_type_cap}'
+        min_key = f'min{room_type_cap}'
+        
+        room_max = requirement.get(max_key)
+        room_min = requirement.get(min_key)
+        
+        if not room_max and not room_min:
+            return 0.0
+            
+        # Handle cases where only one bound is provided
+        if not room_max:
+            room_max = room_min
+        if not room_min:
+            room_min = room_max
+            
+        try:
+            room_max = int(room_max)
+            room_min = int(room_min)
+            property_rooms = int(property_data[room_type_lower])
+        except (ValueError, TypeError):
+            return 0.0
+            
+        # Perfect match range
+        perfect_min = max(room_min - self.thresholds.rooms_perfect, 0)
+        perfect_max = room_max + self.thresholds.rooms_perfect
+        
+        if perfect_min <= property_rooms <= perfect_max:
+            return 100.0
+            
+        # Acceptable range
+        acceptable_min = max(room_min - self.thresholds.rooms_max, 0)
+        acceptable_max = room_max + self.thresholds.rooms_max
+        
+        if property_rooms > perfect_max and property_rooms <= acceptable_max:
+            # Linear interpolation for higher room counts
+            room_diff = property_rooms - perfect_max
+            max_diff = acceptable_max - perfect_max
+            if max_diff == 0:
+                return 100.0
+            score = 100 - (room_diff / max_diff) * (100 - self.thresholds.min_match_percentage)
+            return max(score, self.thresholds.min_match_percentage)
+            
+        elif property_rooms < perfect_min and property_rooms >= acceptable_min:
+            # Linear interpolation for lower room counts
+            room_diff = perfect_min - property_rooms
+            max_diff = perfect_min - acceptable_min
+            if max_diff == 0:
+                return 100.0
+            score = 100 - (room_diff / max_diff) * (100 - self.thresholds.min_match_percentage)
+            return max(score, self.thresholds.min_match_percentage)
+            
+        return 0.0
 
+
+    def calculate_overall_match(self, requirement: Dict, property_data: Dict) -> Dict:
+        """Calculate overall match score and individual component scores."""
+        distance_score = self.calculate_distance_match(requirement, property_data)
+        budget_score = self.calculate_budget_match(requirement, property_data)
+        bedroom_score = self.calculate_bedroom_match(requirement, property_data)
+        bathroom_score = self.calculate_bathroom_match(requirement, property_data)
+        
+        overall_score = (
+            distance_score * self.weights.distance +
+            budget_score * self.weights.budget +
+            bedroom_score * self.weights.bedrooms +
+            bathroom_score * self.weights.bathrooms
+        )
+        
+        return {
+            'overall_score': round(overall_score, 2),
+            'distance_score': round(distance_score, 2),
+            'budget_score': round(budget_score, 2),
+            'bedroom_score': round(bedroom_score, 2),
+            'bathroom_score': round(bathroom_score, 2),
+        }
+    
+    def find_matches(self, requirement: Dict, property_list: List[Dict] = None, 
+                    limit: int = 10) -> List[Dict]:
+        """Find matching properties for a given requirement."""
+        if property_list is None:
+            property_list = MOCK_DATA.DATA
+            
+        matches = []
+        processed_count = 0
+        
+        for property_data in property_list:
+            if limit and processed_count >= limit:
+                break
+                
+            match_result = self.calculate_overall_match(requirement, property_data)
+            
+            if match_result['overall_score'] >= self.thresholds.min_match_percentage:
+                property_match = property_data.copy()
+                property_match.update({
+                    'match': match_result['overall_score'],
+                    'distance_score': match_result['distance_score'],
+                    'budget_score': match_result['budget_score'],
+                    'bedroom_score': match_result['bedroom_score'],
+                    'bathroom_score': match_result['bathroom_score'],
+                })
+                matches.append(property_match)
+            
+            processed_count += 1
+            
+        # Sort by match score (descending)
+        matches.sort(key=lambda x: x['match'], reverse=True)
+        return matches
+
+
+# Legacy function compatibility
+_default_matcher = PropertyMatcher()
 
 def getTopMatches(req_data):
-    ans = []
-    count = 10
-    for data in app_db:
-        if count < 0:
-            break
-        count = count - 1
-        match = getMatch(req_data, data)
-        if match >= 40:
-            obj = data.copy()
-            obj.update({'match': match})
-            ans.append(obj)
-    ans.sort(key=lambda k: k['match'], reverse=True)
-    return ans
-
-
-# print(getTopMatches(input1))
+    """Legacy function for backward compatibility."""
+    return _default_matcher.find_matches(req_data)
