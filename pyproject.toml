@@ -1,0 +1,63 @@
+[tool.black]
+line-length = 88
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # Directories
+  migrations/
+  | venv/
+  | .venv/
+  | dist/
+  | build/
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_django = "django"
+known_first_party = "apiservices"
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "DJANGO", "FIRSTPARTY", "LOCALFOLDER"]
+
+[tool.mypy]
+python_version = "3.12"
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+plugins = ["mypy_django_plugin.main"]
+
+[tool.django-stubs]
+django_settings_module = "apiservices.settings"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "apiservices.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+addopts = "--tb=short --strict-markers --cov=apiservices --cov-report=term-missing"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = "apiservices"
+omit = [
+    "*/migrations/*",
+    "*/venv/*",
+    "*/tests/*",
+    "manage.py",
+    "*/settings/*",
+    "*/__init__.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]

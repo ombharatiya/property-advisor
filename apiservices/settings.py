@@ -11,24 +11,23 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
-from configparser import RawConfigParser
+from decouple import config, Csv
+from pathlib import Path
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'qs@ymzi*-xn290n+a7yg2!7tkjsdhjhdsbl85$u3z)7$x!mwx&'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-# DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "0.0.0.0", "*"]
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=Csv())
 
 
 # Application definition
@@ -91,7 +90,7 @@ WSGI_APPLICATION = 'apiservices.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
@@ -149,9 +148,23 @@ STATICFILES_DIRS = [
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# CORS Setting
+# CORS Settings
+CORS_ALLOWED_ORIGINS = config(
+    'CORS_ALLOWED_ORIGINS', 
+    default='http://localhost:3000,http://127.0.0.1:3000', 
+    cast=Csv()
+)
 
-CORS_ORIGIN_ALLOW_ALL = True
+# Security settings
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Admin credentials
 
@@ -159,25 +172,20 @@ CORS_ORIGIN_ALLOW_ALL = True
 # ADMIN_PWD = os.environ.get('ADMIN_PWD', '12345admin')
 
 # Caching
-
-CACHE_HOST = os.environ.get('CACHE_HOST', 'redis://redis:6379/0')
-
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': CACHE_HOST,
+        'LOCATION': config('CACHE_URL', default='redis://localhost:6379/0'),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
         },
-        'KEY_PREFIX': 'adapter',
-        # 'TIMEOUT': 3600, # 1 hour , default 5 min
+        'KEY_PREFIX': 'property-advisor',
+        'TIMEOUT': 300,
     }
 }
 
-
-config = RawConfigParser()
-config.read(os.path.join(BASE_DIR, 'settings.ini'))
-ADMIN_USERNAME = config.get('section', 'ADMIN_USERNAME')
-ADMIN_PWD = config.get('section', 'ADMIN_PWD')
+# Admin credentials from environment
+ADMIN_USERNAME = config('ADMIN_USERNAME', default='admin@example.com')
+ADMIN_PASSWORD = config('ADMIN_PASSWORD', default='changeme')
 
 # CRISPY_TEMPLATE_PACK = 'bootstrap4'
